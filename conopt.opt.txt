@@ -1,0 +1,6 @@
+lfnsup := 500;
+rtredg := 9.d-2;
+
+set rtredg 1;
+
+
