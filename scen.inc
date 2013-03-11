@@ -99,9 +99,9 @@ SCALAR fallowLand "Percentage of planning zone fallow land relative to crop land
 /;
 
 PARAMETER scUser(scRelease) "Release scenario choosen by user" /
-standard                        0.000000E+00    
+standard                        1.000000E+00    
 nukus           0.000000E+00    
-runoff          1.000000E+00    
+runoff          0.000000E+00    
 hist            0.000000E+00    
 
 /;

@@ -1,4 +1,4 @@
-$SETGLOBAL path  "c:\MKEL\beam\"
+$SETGLOBAL path  "c:\MKEL\beam\" ;
 *option nlp=IPOPT;
 *$SETGLOBAL path  ""
 * =============================================================================
@@ -257,8 +257,8 @@ PARAMETERS
     minInflow0(b,m0)        "Minimum inflow for nature (mm3/month)"
     maxDischrg(b,m0)        "Maximum reservoir discharge (mm3/month)"
     lchNormal(b,j,m)        "Leaching coefficent needs for each month"
-    lossChannels(b, l , m)    "Loss coefficent for channels for each month for different loss types"
-    jYield(j, m0)             "yield coefficent for each crop in each month"
+    lossChannels(b, l , m)  "Loss coefficent for channels for each month for different loss types"
+    jYield(j, m0)           "Yield coefficent for each crop in each month"
 
 ;
 
@@ -410,26 +410,23 @@ EQUATIONS
     NOWATER(b,j,y0, m0)         "Some months should be forced to not irrigate at all"
     NOWATERLEACH(b,j,y0, m0)    "Some months should be forced to not leach at all"
 * WATER LOSS CONSTRAINTS MKEL 15. februray 2013
-    CHALOSS(b,l,y0,m0,s)    "Calculate the loss in fields for each node b, for each type l, for each year y0 in each month m0"
-    FIELDLOSS(b,j,l,y0,m)   "Calculate the loss in fields for each node b, to each crop j, for each type l, for each year y0 in each month m0"
+    CHALOSS(b,l,y0,m0,s)        "Calculate the loss in fields for each node b, for each type l, for each year y0 in each month m0"
+    FIELDLOSS(b,j,l,y0,m)       "Calculate the loss in fields for each node b, to each crop j, for each type l, for each year y0 in each month m0"
 
 
 
 *   New equations below only used for various user defined scenarios. MKEL
 *   The colume should never change, meaning we have river run off.
     CONSTANTVOLUME(s,b,y0,m0)
-    HISTPATTERNS(s,b,b,y0,m0)    "If user choeses, he can limit the power production to be the same pattern as in the year 2009."
-
-    HARM(s,b,b,y0,m0)            "Ensures that there is no flow from a reservoir that has no production."
+    HISTPATTERNS(s,b,b,y0,m0)    "If user choses, he can limit the power production to be the same pattern as in the year 2009."
 * Objective functions
-    OBJ                         "Objective function"
+    OBJ                          "Objective function"
 ;
 
 * Water balance by nodes:
 * - left hand side is demand
 * - right hand side is supply
-* Because of industrial demand (qiWater) it looks like its not possible to just let the river run off, since the demand required attention
-* this has the effect that we need to lower the volume...
+
 WBALANCE(s,b,y,m)..
     scalem3 * (
      SUM(bd$intk(bd,b), ITK(s,bd,b,y,m))
@@ -559,18 +556,19 @@ MININFLOWa(b,y,mA)$(minInFlow0(b,mA) + natExtra(b))..
 * Leontief production technology (perfect complements)
 * Also correct for the fall in yield caused by the CET function.
 LEONTIEF(b,j,k,y)$(iShare(b,k,j) and (not kWater(k)))..
-*    iOUTPUT(b,j,y) =e= iINPUT(b,j,k,y) * (1$jAX(j) + SUM(jj$lShare(b,jj), lShare(b,jj)*iOUTPUT(b,jj,y))$jAF(j) ) ;
-1 =e= 1;
+    iOUTPUT(b,j,y) =e= iINPUT(b,j,k,y) * (1$jAX(j) + SUM(jj$lShare(b,jj), lShare(b,jj)*iOUTPUT(b,jj,y))$jAF(j) ) ;
+
 
 * Enforce decreasing returns to scale from deviating away from base year land use patterns
 * iINPUT(j,JA,"land",j) is effective land use, iLAND(b,j,y) is physical land use
 CETLAND(b,y)$SUM(j$jAF(j), qInputs(b,"land",j))..
     1 =e=  ( SUM(j$lShare(b,j), lShare(b,j)*iOUTPUT(b,j,y)**rL )**(1/rL) ) ;
 
+
 * Some crops have a fixed share of land
 FIXEDLAND(b,j,y)$(qInputs(b,"land",j) AND jAX(j))..
-*    iOUTPUT(b,j,y)$jAX(j)   =e= 1;
-1 =e= 1;
+    iOUTPUT(b,j,y)$jAX(j)   =e= 1;
+
 
 
 * Yield response function to water shortages MKEL. This is the non-linear way to do it, which can be done, but does create difficulties.
@@ -672,22 +670,9 @@ HISTPATTERNS(s,bd,bo,y0,m)$(scUser("hist") AND rDisBas0(bd,bo,y0,m))..
 *relative pattern
 rDisBas0(bd,bo,y0,m) * iDISCHARGE(bd, bo, y0) =e= DIS(s,bd,bo,y0,m);
 
-
-******** NEW CONSTRAINTS 4 marts Note 2.4**********   NOT WORKING    NOT WORKING       NOT WORKING
-* Constraint that ensures that no waterflow is less than the discharge for nodes b, that are reservoirs. This ensures that
-* in the case, where user opts to shut down production, he also shuts down the waterflow ! Perhaps this could also be zero?
-HARM(s,bd,b,y,m)..
-1 =e= 1;
-*VOL(s,b,y,m)
-*SUM(mm, VOL(s,b,y0,mm)$(ORD(mm) = ORD(m0)-1)  ) ;
-*    20000 =g= STO(s,b,y0,m0);
-*1 =e= 1;
-
-
 *********************
 * Objective is the total value of water from electricity, industry and agriculture
 
-*  iYIELD(b,j,y)$bPlz(b) added MKEL.  Should iINPUT be altered now?
 OBJ..    TWV  =e=
                     SUM((b,j,y)$oCosts(b,j), iYIELD(b,j,y)$bPlz(b) * iOUTPUT(b,j,y)*qAQuant(b,j)*pCrop(j)/1000000 - SUM(k$(not kLimit(k)), iACosts(b,k,j)*iINPUT(b,j,k,y)*pInput(k)) )
 
@@ -715,12 +700,12 @@ OBJ..    TWV  =e=
 MODEL beam  /   WBALANCE, RESVOL, RESFIXVOL, RESFIXDIS, SEAVOL, RESDISMAX, ELECHEAD, RESVOLMAX, RESVOLMIN, RESVOLCHANGE,
                 ELECBASE, ELECPEAK,  ELECSALES, ELECMINPRODPEAK, ELECMINPRODBASE, GRNDWATER, MINOUTFLOW, MININFLOW, MININFLOWa,
                 LEONTIEF, CETLAND, FIXEDLAND, YIELDCAL, RATEEQ, RATEMAX, RATEEQ2,  CHECK, FAO33max, LEACH, NOWATER, NOWATERLEACH,
-                CHALOSS, FIELDLOSS, CONSTANTVOLUME, OBJ, HISTPATTERNS, HARM /;
+                CHALOSS, FIELDLOSS, CONSTANTVOLUME, OBJ, HISTPATTERNS/;
 
 MODEL beamBASE  /   WBALANCE, RESVOL, RESFIXVOL, RESFIXDIS, SEAVOL, RESDISMAX, ELECHEAD, RESVOLMAX, RESVOLMIN,
                 ELECBASE, ELECPEAK,  ELECSALES, GRNDWATER, MINOUTFLOW, MININFLOW, MININFLOWa,
                 LEONTIEF, CETLAND, FIXEDLAND, YIELDCAL, RATEEQ, RATEMAX, RATEEQ2, CHECK, FAO33max, LEACH, NOWATER, NOWATERLEACH,
-                CHALOSS, FIELDLOSS, CONSTANTVOLUME, OBJ, HISTPATTERNS, HARM /;
+                CHALOSS, FIELDLOSS, CONSTANTVOLUME, OBJ, HISTPATTERNS/;
 
 
 
