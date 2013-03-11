@@ -257,8 +257,8 @@ PARAMETERS
     minInflow0(b,m0)        "Minimum inflow for nature (mm3/month)"
     maxDischrg(b,m0)        "Maximum reservoir discharge (mm3/month)"
     lchNormal(b,j,m)        "Leaching coefficent needs for each month"
-    lossChannels(b, l , m)    "Loss coefficent for channels for each month for different loss types"
-    jYield(j, m0)             "yield coefficent for each crop in each month"
+    lossChannels(b, l , m)  "Loss coefficent for channels for each month for different loss types"
+    jYield(j, m0)           "Yield coefficent for each crop in each month"
 
 ;
 
@@ -688,7 +688,6 @@ HARM(s,bd,b,y,m)..
 *********************
 * Objective is the total value of water from electricity, industry and agriculture
 
-*  iYIELD(b,j,y)$bPlz(b) added MKEL.  Should iINPUT be altered now?
 OBJ..    TWV  =e=
                     SUM((b,j,y)$oCosts(b,j), iYIELD(b,j,y)$bPlz(b) * iOUTPUT(b,j,y)*qAQuant(b,j)*pCrop(j)/1000000 - SUM(k$(not kLimit(k)), iACosts(b,k,j)*iINPUT(b,j,k,y)*pInput(k)) )
 
